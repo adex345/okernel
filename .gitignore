@@ -1,0 +1,11 @@
+# Cargo build output (also holds the cloned Limine SDK, iso_root and okernel.iso)
+/target
+
+# Stray ISO images (the old build.rs wrote okernel.iso to the project root)
+*.iso
+
+# Editor / OS junk
+.vscode/
+.idea/
+*.swp
+.DS_Store
