@@ -48,16 +48,17 @@ fn kernel_main() -> ! {
         && let Some(fb) = framebuffer_response.framebuffers().first()
     {
         let fb_ptr = fb.address().cast::<u32>();
-        let stride = (fb.pitch / 4) as usize;
+        let fb_width_px = (fb.pitch / 4) as usize;
 
-        draw_char(fb_ptr, stride, 100, 100, CharBMP::H, Colour::RED);
-        draw_char(fb_ptr, stride, 110, 100, CharBMP::I, Colour::GREEN);
+		let fb_slice = unsafe {core::slice::from_raw_parts_mut(fb_ptr, 1)};
+        draw_char(fb_slice, fb_width_px, 100, 100, CharBMP::H, Colour::RED);
+        draw_char(fb_slice, fb_width_px, 110, 100, CharBMP::I, Colour::GREEN);
     }
     panic!();
 }
 
 fn draw_char(
-    fb_ptr: *mut u32,
+    fb_slice: &mut [u32], // Przekazujemy bezpieczny bufor zamiast wskaźnika
     fb_width_px: usize,
     start_x: usize,
     start_y: usize,
@@ -65,15 +66,12 @@ fn draw_char(
     color: u32,
 ) {
     for (y, &row) in char_bitmap.iter().enumerate() {
-        // Obliczamy początek wiersza RAZ na całą linię pikseli
-        let row_offset = (start_y + y) * fb_width_px + start_x;
-            
-        for x in 0..8 {
-            // Sprawdzamy, czy dany bit jest zapalony
-            if (row & (0x80 >> x)) != 0 {
-                // Blok unsafe otacza wyłącznie samą operację zapisu piksela
-                unsafe {
-                    *fb_ptr.add(row_offset + x) = color;
+        let row_start = (start_y + y) * fb_width_px + start_x;
+        // Pobieramy wycinek tylko dla tego wiersza czcionki (8 pikseli)
+        if let Some(pixel_row) = fb_slice.get_mut(row_start..row_start + 8) {
+            for x in 0..8 {
+                if (row & (0x80 >> x)) != 0 {
+                    pixel_row[x] = color; // Bezpieczne i szybkie
                 }
             }
         }
