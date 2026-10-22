@@ -30,35 +30,38 @@ const BITMAP_O: [u8; 8] = [0x00,0x3c,0x42,0x42,0x42,0x42,0x3c,0x00];
 const BITMAP_W: [u8; 8] = [0x00,0x42,0x42,0x42,0x5a,0x5a,0x24,0x00];
 const BITMAP_R: [u8; 8] = [0x00,0x70,0x48,0x48,0x70,0x50,0x4e,0x00];
 const BITMAP_D: [u8; 8] = [0x00,0x78,0x44,0x42,0x42,0x44,0x78,0x00];
+const BITMAP_EXCLAMATION: [u8; 8] = [0x00,0x18,0x18,0x18,0x18,0x00,0x18,0x00];
+const BITMAP_SPACE: [u8; 8] = [0; 8];
 
-// 1. Surowy punkt wejścia ABI dla bootloadera (Zgodny z C)
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    // Przekazujemy sterowanie do bezpiecznego i czystego świata Rusta
     kernel_main();
 }
 
-// 2. Właściwa, główna funkcja Twojego jądra (Czysty Rust)
 fn kernel_main() -> ! {
     assert!(BASE_REVISION.is_supported());
-    // Cała logika systemu żyje tutaj
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.response()
         && let Some(fb) = framebuffer_response.framebuffers().first()
     {
-        // Używamy .cast::<u32>() zamiast rzutowania 'as', aby zachować czystość typów wskaźnikowych
         let fb_ptr = fb.address().cast::<u32>();
         let stride = (fb.pitch / 4) as usize;
 
-        // Rysowanie napisu "HI"
-        draw_char(fb_ptr, stride, 100, 100, BITMAP_H, 0x00FF_0000); // Czerwone H
-        draw_char(fb_ptr, stride, 110, 100, BITMAP_I, 0x0000_FF00); // Zielone I
+        draw_char(fb_ptr, stride, 100, 100, BITMAP_H, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 110, 100, BITMAP_E, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 120, 100, BITMAP_L, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 130, 100, BITMAP_L, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 140, 100, BITMAP_O, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 150, 100, BITMAP_SPACE, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 160, 100, BITMAP_W, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 170, 100, BITMAP_O, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 180, 100, BITMAP_R, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 190, 100, BITMAP_L, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 200, 100, BITMAP_D, 0x00FF_FFFF);
+        draw_char(fb_ptr, stride, 210, 100, BITMAP_EXCLAMATION, 0x00FF_FFFF);
     }
-
-    // Bezpieczne zatrzymanie procesora
     system_halt();
 }
 
-// Funkcja pomocnicza do rysowania pikseli
 fn draw_char(
     fb_ptr: *mut u32,
     stride: usize,
@@ -79,7 +82,6 @@ fn draw_char(
     }
 }
 
-// Funkcja wprowadzająca procesor w bezpieczny stan uśpienia
 fn system_halt() -> ! {
     loop {
         unsafe {
@@ -88,7 +90,6 @@ fn system_halt() -> ! {
     }
 }
 
-// Obsługa błędów krytycznych (Panic)
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     system_halt();
